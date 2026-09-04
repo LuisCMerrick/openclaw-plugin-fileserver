@@ -9,15 +9,18 @@ export function detectActiveDomain(): string {
     return envDomain;
   }
 
-  const envBaseUrl = process.env.OPENCLAW_BASE_URL?.trim();
-  if (envBaseUrl) {
-    if (envBaseUrl.startsWith("http://") || envBaseUrl.startsWith("https://")) {
-      const parts = envBaseUrl.split("/");
-      if (parts.length >= 3 && parts[2]) {
-        return parts[2];
+  const envUrls = [process.env.OPENCLAW_BASE_URL, process.env.PUBLIC_URL, process.env.GATEWAY_URL];
+  for (const raw of envUrls) {
+    if (raw && raw.trim()) {
+      const val = raw.trim();
+      if (val.startsWith("http://") || val.startsWith("https://")) {
+        try {
+          const u = new URL(val);
+          if (u.host) return u.host;
+        } catch {}
       }
+      return val;
     }
-    return envBaseUrl;
   }
 
   const vhostDirs = [

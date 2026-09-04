@@ -5,14 +5,71 @@ import type { IncomingMessage } from "node:http";
 import type { FileserverConfig } from "./types.js";
 import { detectActiveDomain, requestOrigin } from "./domain.js";
 
-export const DEFAULT_CONFIG_PATH = "/etc/openclaw-fileserver/config.json";
+export function resolveDefaultWorkspace(): string {
+  if (process.env.OPENCLAW_WORKSPACE && process.env.OPENCLAW_WORKSPACE.trim()) {
+    return path.resolve(process.env.OPENCLAW_WORKSPACE.trim());
+  }
+  return path.join(os.homedir(), ".openclaw", "workspace");
+}
 
-function resolveDefaultWorkspace(): string {
-  return process.env.OPENCLAW_WORKSPACE || path.join(os.homedir(), ".openclaw", "workspace");
+export function resolveDefaultStateDir(): string {
+  if (process.env.OPENCLAW_STATE_DIR && process.env.OPENCLAW_STATE_DIR.trim()) {
+    return path.resolve(process.env.OPENCLAW_STATE_DIR.trim());
+  }
+  return path.join(os.homedir(), ".openclaw");
+}
+
+export function resolveDefaultDataFiles(): { dataFile: string; uploadDataFile: string } {
+  const legacyDir = "/var/lib/openclaw-fileserver";
+  try {
+    if (fs.existsSync(legacyDir)) {
+      fs.accessSync(legacyDir, fs.constants.W_OK);
+      return {
+        dataFile: path.join(legacyDir, "shares.json"),
+        uploadDataFile: path.join(legacyDir, "uploads.json"),
+      };
+    }
+  } catch {
+    // legacy dir inaccessible or not writable
+  }
+
+  const standardDataDir = path.join(resolveDefaultStateDir(), "data", "fileserver");
+  return {
+    dataFile: path.join(standardDataDir, "shares.json"),
+    uploadDataFile: path.join(standardDataDir, "uploads.json"),
+  };
+}
+
+export function resolveConfigPath(configPath?: string): string | null {
+  if (configPath && fs.existsSync(configPath)) {
+    return path.resolve(configPath);
+  }
+
+  const candidates = [
+    path.resolve("fileserver.json"),
+    path.resolve("config.json"),
+    path.join(resolveDefaultStateDir(), "fileserver.json"),
+    path.join(resolveDefaultStateDir(), "config", "fileserver.json"),
+    "/etc/openclaw-fileserver/config.json",
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate)) {
+        return candidate;
+      }
+    } catch {
+      // ignore
+    }
+  }
+
+  return null;
 }
 
 export function getDefaultConfig(): FileserverConfig {
   const defaultWs = resolveDefaultWorkspace();
+  const { dataFile, uploadDataFile } = resolveDefaultDataFiles();
+
   return {
     bind_addr: "none",
     base_url: "auto",
@@ -23,8 +80,8 @@ export function getDefaultConfig(): FileserverConfig {
     default_ttl: "24h",
     max_ttl: "168h",
     api_token: "",
-    data_file: "/var/lib/openclaw-fileserver/shares.json",
-    upload_data_file: "/var/lib/openclaw-fileserver/uploads.json",
+    data_file: dataFile,
+    upload_data_file: uploadDataFile,
     max_upload_bytes: 1024 * 1024 * 1024, // 1GB
   };
 }
@@ -81,17 +138,9 @@ export function resolveUploadTargetDir(specificDir?: string, date = new Date()):
   return path.join(base, timeSubdir);
 }
 
-export function loadConfig(configPath?: string): FileserverConfig {
+export function loadConfig(configPath?: string, overrides?: Partial<FileserverConfig>): FileserverConfig {
   const cfg = getDefaultConfig();
-  let targetPath = configPath;
-
-  if (!targetPath) {
-    if (fs.existsSync(DEFAULT_CONFIG_PATH)) {
-      targetPath = DEFAULT_CONFIG_PATH;
-    } else if (fs.existsSync("config.json")) {
-      targetPath = "config.json";
-    }
-  }
+  const targetPath = resolveConfigPath(configPath);
 
   if (targetPath && fs.existsSync(targetPath)) {
     try {
@@ -101,6 +150,10 @@ export function loadConfig(configPath?: string): FileserverConfig {
     } catch (err) {
       console.warn(`[openclaw-fileserver] Failed to parse config ${targetPath}:`, err);
     }
+  }
+
+  if (overrides) {
+    Object.assign(cfg, overrides);
   }
 
   if (!cfg.allowed_root) {

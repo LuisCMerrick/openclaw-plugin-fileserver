@@ -6,7 +6,8 @@ import { FileserverServer } from "./server.js";
 import { safeResolve, generateShortCode } from "./security.js";
 import { formatBytes } from "./templates.js";
 export default function register(api) {
-    const cfg = loadConfig();
+    const pluginConfigOverrides = api.config?.plugins?.entries?.["fileserver"]?.config || {};
+    const cfg = loadConfig(undefined, pluginConfigOverrides);
     const store = new Store(cfg.data_file, cfg.upload_data_file);
     const serverInstance = new FileserverServer(cfg, store);
     // 1. 注册 Gateway 原生 HTTP 路由 (直接挂载在网关 18789 端口，Nginx 仅需保留单个 location /)

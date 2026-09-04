@@ -9,7 +9,8 @@ import { formatBytes } from "./templates.js";
 import type { ShareRecord, UploadChannel } from "./types.js";
 
 export default function register(api: any) {
-  const cfg = loadConfig();
+  const pluginConfigOverrides = api.config?.plugins?.entries?.["fileserver"]?.config || {};
+  const cfg = loadConfig(undefined, pluginConfigOverrides);
   const store = new Store(cfg.data_file, cfg.upload_data_file);
   const serverInstance = new FileserverServer(cfg, store);
 

@@ -26,5 +26,8 @@
     "extensions": [
       "./dist/index.js"
     ]
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.3"
   }
 }

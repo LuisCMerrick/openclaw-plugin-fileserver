@@ -33,10 +33,9 @@ let uploadHtmlTemplate: string | null = null;
 
 function loadTemplates(): void {
   const possiblePaths = [
-    path.join(__dirname, "../web"),
-    path.join(__dirname, "web"),
-    path.join(os.homedir(), ".openclaw", "extensions", "fileserver", "web"),
-    "/opt/openclaw-fileserver/web",
+    path.resolve(__dirname, "../web"),
+    path.resolve(__dirname, "web"),
+    path.resolve(process.cwd(), "web"),
   ];
 
   for (const base of possiblePaths) {

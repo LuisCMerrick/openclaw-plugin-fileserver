@@ -1,5 +1,4 @@
 import * as fs from "node:fs";
-import * as os from "node:os";
 import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -28,10 +27,9 @@ let errorHtmlTemplate = null;
 let uploadHtmlTemplate = null;
 function loadTemplates() {
     const possiblePaths = [
-        path.join(__dirname, "../web"),
-        path.join(__dirname, "web"),
-        path.join(os.homedir(), ".openclaw", "extensions", "fileserver", "web"),
-        "/opt/openclaw-fileserver/web",
+        path.resolve(__dirname, "../web"),
+        path.resolve(__dirname, "web"),
+        path.resolve(process.cwd(), "web"),
     ];
     for (const base of possiblePaths) {
         const ep = path.join(base, "error.html");
