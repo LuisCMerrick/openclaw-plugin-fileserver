@@ -1,0 +1,90 @@
+{
+  "id": "fileserver",
+  "name": "OpenClaw Fileserver",
+  "description": "Secure file transport service with clean URLs, drop portals, and range support.",
+  "activation": {
+    "onStartup": true,
+    "onCommands": [
+      "fileserver"
+    ]
+  },
+  "cliCommands": [
+    {
+      "name": "fileserver",
+      "description": "OpenClaw Secure File Transport Service",
+      "hasSubcommands": true
+    }
+  ],
+  "commandAliases": [
+    {
+      "name": "fileserver"
+    }
+  ],
+  "contracts": {
+    "services": [
+      "fileserver"
+    ],
+    "tools": [
+      "fileserver_share",
+      "fileserver_receive",
+      "fileserver_list",
+      "fileserver_revoke"
+    ]
+  },
+  "toolMetadata": {
+    "fileserver_share": {
+      "optional": true
+    },
+    "fileserver_receive": {
+      "optional": true
+    },
+    "fileserver_list": {
+      "optional": true
+    },
+    "fileserver_revoke": {
+      "optional": true
+    }
+  },
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "bind_addr": {
+        "type": "string"
+      },
+      "base_url": {
+        "type": "string"
+      },
+      "upload_base_url": {
+        "type": "string"
+      },
+      "upload_dir": {
+        "type": "string"
+      },
+      "secret_key": {
+        "type": "string"
+      },
+      "allowed_root": {
+        "type": "string"
+      },
+      "default_ttl": {
+        "type": "string"
+      },
+      "max_ttl": {
+        "type": "string"
+      },
+      "api_token": {
+        "type": "string"
+      },
+      "data_file": {
+        "type": "string"
+      },
+      "upload_data_file": {
+        "type": "string"
+      },
+      "max_upload_bytes": {
+        "type": "number"
+      }
+    }
+  }
+}

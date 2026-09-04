@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文件投递通道 - OpenClaw</title>
+    <style>
+        :root {
+            --bg-color: #090d13;
+            --surface-card: #131923;
+            --surface-elevated: #1a2230;
+            --border: #242f42;
+            --border-hover: #3b4d6b;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b9bb4;
+            --accent-color: #58a6ff;
+            --accent-hover: #388bfd;
+            --accent-glow: rgba(88, 166, 255, 0.15);
+            --success-color: #3fb950;
+            --danger-color: #f85149;
+            --font-stack: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: var(--font-stack);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px 16px;
+        }
+        .container {
+            width: 100%;
+            max-width: 680px;
+        }
+        .header {
+            margin-bottom: 24px;
+            text-align: center;
+        }
+        .header h1 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            margin-bottom: 8px;
+            color: #f0f6fc;
+        }
+        .header p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+        .card {
+            background-color: var(--surface-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+        }
+        .channel-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        .info-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: var(--text-secondary);
+        }
+        .info-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+        .badge {
+            display: inline-block;
+            background: rgba(88, 166, 255, 0.12);
+            color: var(--accent-color);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            width: fit-content;
+        }
+        .dropzone {
+            border: 2px dashed var(--border);
+            border-radius: 10px;
+            padding: 40px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: rgba(19, 25, 35, 0.5);
+            outline: none;
+        }
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--accent-color);
+            background: var(--accent-glow);
+        }
+        .dropzone-icon {
+            font-size: 36px;
+            margin-bottom: 12px;
+            color: var(--accent-color);
+        }
+        .dropzone-title {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 6px;
+        }
+        .dropzone-hint {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        #file-input { display: none; }
+        
+        .upload-queue {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+        .queue-item {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .queue-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        .queue-filename {
+            font-weight: 500;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 75%;
+        }
+        .queue-filesize {
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+            font-size: 12px;
+        }
+        .progress-bar-wrap {
+            height: 6px;
+            background: #21262d;
+            border-radius: 3px;
+            overflow: hidden;
+            position: relative;
+        }
+        .progress-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: var(--accent-color);
+            transition: width 0.15s linear;
+        }
+        .queue-status {
+            font-size: 11px;
+            color: var(--text-secondary);
+            display: flex;
+            justify-content: space-between;
+        }
+        .status-success { color: var(--success-color); }
+        .status-error { color: var(--danger-color); }
+
+        .btn-sm {
+            background: rgba(88, 166, 255, 0.12);
+            color: var(--accent-color);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 11px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .btn-sm:hover {
+            background: var(--accent-color);
+            color: #0d1117;
+            border-color: var(--accent-color);
+        }
+
+        .btn-submit {
+            margin-top: 16px;
+            width: 100%;
+            padding: 12px 20px;
+            background: var(--accent-color);
+            color: #0d1117;
+            font-weight: 600;
+            font-size: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .btn-submit:hover:not(:disabled) {
+            background: var(--accent-hover);
+        }
+        .btn-submit:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+        .history-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .history-item {
+            background: var(--surface-elevated);
+            border: 1px solid var(--border);
+            padding: 10px 14px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+        .file-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 65%;
+        }
+        .file-meta {
+            color: var(--text-secondary);
+            font-size: 12px;
+            font-family: var(--font-mono);
+        }
+        .empty-state {
+            color: var(--text-secondary);
+            font-size: 13px;
+            text-align: center;
+            padding: 16px;
+        }
+        .footer-note {
+            text-align: center;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>OpenClaw 临时文件投递</h1>
+            <p>通过独立安全通道直接向工作区投递文件</p>
+        </div>
+
+        <div class="card">
+            <div class="channel-info">
+                <div class="info-item">
+                    <span class="info-label">通道代码</span>
+                    <div style="display:flex;align-items:center;gap:6px;">
+                        <span class="info-value badge">{{.Code}}</span>
+                        <button type="button" class="btn-sm" id="btn-copy-link" onclick="copyLink()">复制链接</button>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">当前界面</span>
+                    <span class="info-value" id="current-host" style="font-size:12px;color:var(--text-secondary);">自适应中...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">剩余有效时间</span>
+                    <span class="info-value" id="countdown">计算中...</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">目标目录</span>
+                    <span class="info-value">{{.RelDir}}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">上传限制</span>
+                    <span class="info-value">{{.LimitDesc}}</span>
+                </div>
+            </div>
+
+            <div class="dropzone" id="dropzone">
+                <div class="dropzone-icon">⇪</div>
+                <div class="dropzone-title">拖拽文件至此处，或点击浏览</div>
+                <div class="dropzone-hint">单次请求上限 {{.MaxSizeDesc}} · 支持批量多选</div>
+                <input type="file" id="file-input" multiple>
+            </div>
+
+            <div class="upload-queue" id="queue-container"></div>
+            <button class="btn-submit" id="btn-upload" style="display:none;" disabled>开始上传</button>
+        </div>
+
+        <div class="card">
+            <div class="section-title">通道已接收记录</div>
+            {{if .Files}}
+            <div class="history-list" id="history-list">
+                {{range .Files}}
+                <div class="history-item">
+                    <span class="file-name" title="{{.Filename}}">{{.Filename}}</span>
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <span class="file-meta">{{.SizeStr}} · {{.TimeStr}}</span>
+                        <a href="/d/{{$.Code}}/{{.Filename}}" target="_blank" class="btn-sm">下载</a>
+                    </div>
+                </div>
+                {{end}}
+            </div>
+            {{else}}
+            <div class="empty-state" id="empty-state">暂无已上传文件</div>
+            {{end}}
+        </div>
+
+        <div class="footer-note">
+            端到端流式落盘 · SHA256 审计 · 沙箱物理隔离
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            const currentHostEl = document.getElementById('current-host');
+            if (currentHostEl) {
+                currentHostEl.innerText = window.location.host;
+            }
+
+            window.copyLink = function() {
+                const btn = document.getElementById('btn-copy-link');
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                    btn.innerText = '已复制!';
+                    setTimeout(() => btn.innerText = '复制链接', 2000);
+                }).catch(() => {
+                    prompt('请复制当前通道完整链接:', window.location.href);
+                });
+            };
+
+            let remaining = {{.RemainingSeconds}};
+            const countdownEl = document.getElementById('countdown');
+            function updateCountdown() {
+                if (remaining <= 0) {
+                    countdownEl.innerText = "已过期";
+                    countdownEl.style.color = "var(--danger-color)";
+                    return;
+                }
+                const h = Math.floor(remaining / 3600);
+                const m = Math.floor((remaining % 3600) / 60);
+                const s = remaining % 60;
+                countdownEl.innerText = (h > 0 ? h + 'h ' : '') + m + 'm ' + s + 's';
+                remaining--;
+            }
+            updateCountdown();
+            setInterval(updateCountdown, 1000);
+
+            const dropzone = document.getElementById('dropzone');
+            const fileInput = document.getElementById('file-input');
+            const queueContainer = document.getElementById('queue-container');
+            const btnUpload = document.getElementById('btn-upload');
+
+            let selectedFiles = [];
+
+            function formatBytes(bytes) {
+                if (bytes === 0) return '0 B';
+                const k = 1024;
+                const sizes = ['B', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+
+            dropzone.addEventListener('click', () => fileInput.click());
+
+            ['dragenter', 'dragover'].forEach(name => {
+                dropzone.addEventListener(name, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.add('dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(name => {
+                dropzone.addEventListener(name, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    dropzone.classList.remove('dragover');
+                });
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                if (files && files.length > 0) {
+                    handleFiles(Array.from(files));
+                }
+            });
+
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files && fileInput.files.length > 0) {
+                    handleFiles(Array.from(fileInput.files));
+                }
+            });
+
+            function handleFiles(files) {
+                files.forEach(f => {
+                    selectedFiles.push({ file: f, uploaded: false });
+                });
+                renderQueue();
+            }
+
+            function renderQueue() {
+                queueContainer.innerHTML = '';
+                if (selectedFiles.length === 0) {
+                    btnUpload.style.display = 'none';
+                    return;
+                }
+                btnUpload.style.display = 'block';
+                btnUpload.disabled = false;
+                btnUpload.innerText = '开始上传 (' + selectedFiles.length + ' 个文件)';
+
+                selectedFiles.forEach((item, idx) => {
+                    const row = document.createElement('div');
+                    row.className = 'queue-item';
+                    row.id = 'queue-item-' + idx;
+                    row.innerHTML = `
+                        <div class="queue-item-header">
+                            <span class="queue-filename" title="${escapeHtml(item.file.name)}">${escapeHtml(item.file.name)}</span>
+                            <span class="queue-filesize">${formatBytes(item.file.size)}</span>
+                        </div>
+                        <div class="progress-bar-wrap">
+                            <div class="progress-bar-fill" id="bar-${idx}"></div>
+                        </div>
+                        <div class="queue-status">
+                            <span id="status-${idx}">等待上传...</span>
+                            <span id="percent-${idx}">0%</span>
+                        </div>
+                    `;
+                    queueContainer.appendChild(row);
+                });
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            btnUpload.addEventListener('click', () => {
+                uploadNext(0);
+            });
+
+            function uploadNext(index) {
+                if (index >= selectedFiles.length) {
+                    btnUpload.disabled = true;
+                    btnUpload.innerText = '全部上传完成';
+                    setTimeout(() => window.location.reload(), 1500);
+                    return;
+                }
+
+                const item = selectedFiles[index];
+                if (item.uploaded) {
+                    uploadNext(index + 1);
+                    return;
+                }
+
+                btnUpload.disabled = true;
+                btnUpload.innerText = '正在上传第 ' + (index + 1) + '/' + selectedFiles.length + ' 个...';
+
+                const bar = document.getElementById('bar-' + index);
+                const status = document.getElementById('status-' + index);
+                const percent = document.getElementById('percent-' + index);
+
+                status.innerText = '正在上传...';
+
+                const xhr = new XMLHttpRequest();
+                const formData = new FormData();
+                formData.append('file', item.file);
+
+                xhr.upload.addEventListener('progress', (e) => {
+                    if (e.lengthComputable) {
+                        const p = Math.round((e.loaded / e.total) * 100);
+                        bar.style.width = p + '%';
+                        percent.innerText = p + '%';
+                    }
+                });
+
+                xhr.addEventListener('load', () => {
+                    if (xhr.status >= 200 && xhr.status < 300) {
+                        bar.style.width = '100%';
+                        bar.style.background = 'var(--success-color)';
+                        percent.innerText = '100%';
+                        status.className = 'status-success';
+                        status.innerText = '上传成功';
+                        item.uploaded = true;
+                        uploadNext(index + 1);
+                    } else {
+                        bar.style.background = 'var(--danger-color)';
+                        status.className = 'status-error';
+                        let errText = '上传失败 (' + xhr.status + ')';
+                        try {
+                            const resp = JSON.parse(xhr.responseText);
+                            if (resp && resp.error) errText = resp.error;
+                        } catch(e) {}
+                        status.innerText = errText;
+                        btnUpload.disabled = false;
+                        btnUpload.innerText = '重试未完成的上传';
+                    }
+                });
+
+                xhr.addEventListener('error', () => {
+                    bar.style.background = 'var(--danger-color)';
+                    status.className = 'status-error';
+                    status.innerText = '网络连接异常';
+                    btnUpload.disabled = false;
+                    btnUpload.innerText = '重试未完成的上传';
+                });
+
+                xhr.open('POST', window.location.pathname, true);
+                xhr.send(formData);
+            }
+        })();
+    </script>
+</body>
+</html>

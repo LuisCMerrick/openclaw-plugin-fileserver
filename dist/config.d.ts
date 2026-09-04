@@ -1,0 +1,10 @@
+import type { IncomingMessage } from "node:http";
+import type { FileserverConfig } from "./types.js";
+export declare const DEFAULT_CONFIG_PATH = "/etc/openclaw-fileserver/config.json";
+export declare function getDefaultConfig(): FileserverConfig;
+export declare function parseFlexibleDuration(s: string): number;
+export declare function getDateMinuteSubdir(date?: Date): string;
+export declare function resolveUploadTargetDir(specificDir?: string, date?: Date): string;
+export declare function loadConfig(configPath?: string): FileserverConfig;
+export declare function resolveBaseUrl(cfg: FileserverConfig, req?: IncomingMessage): string;
+export declare function resolveUploadBaseUrl(cfg: FileserverConfig, req?: IncomingMessage): string;
