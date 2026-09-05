@@ -59,13 +59,19 @@ OpenClaw 官方规范的原生安全文件流转与分发插件。提供优雅�
 
 ### 1. 安装插件
 
-克隆或下载本仓库到 OpenClaw 全局扩展目录：
-
+#### 推荐方式 A：通过 Git 源码安装并由 OpenClaw 托管账本（生产推荐）
 ```bash
-mkdir -p ~/.openclaw/extensions/fileserver
-git clone https://github.com/ming79486/openclaw-plugin-fileserver.git ~/.openclaw/extensions/fileserver
+openclaw plugins install git:https://github.com/ming79486/openclaw-plugin-fileserver.git --force
+```
+
+#### 推荐方式 B：本地扩展或源码链接开发（开发推荐）
+```bash
+# 存放于全局扩展目录 ~/.openclaw/extensions/fileserver
 cd ~/.openclaw/extensions/fileserver
-npm install --omit=dev
+npm install --omit=dev && npm run build
+
+# 建立权威安装归属与全局扩展关联（自动注册并维护权威 installOwner 账本）
+openclaw plugins install --link ~/.openclaw/extensions/fileserver --force
 ```
 
 ### 2. 启用插件

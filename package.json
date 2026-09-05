@@ -1,6 +1,6 @@
 {
   "name": "openclaw-plugin-fileserver",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Native secure file sharing and upload drop portal plugin for OpenClaw with single-port Gateway routing",
   "type": "module",
   "main": "dist/index.js",
@@ -22,12 +22,41 @@
     "build": "tsc",
     "prepublishOnly": "npm run build"
   },
+  "files": [
+    "dist/**",
+    "openclaw.plugin.json",
+    "README.md",
+    "LICENSE"
+  ],
+  "peerDependencies": {
+    "openclaw": ">=2026.3.0"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
   "openclaw": {
     "extensions": [
       "./dist/index.js"
-    ]
+    ],
+    "plugin": {
+      "id": "fileserver"
+    },
+    "install": {
+      "npmSpec": "openclaw-plugin-fileserver",
+      "defaultChoice": "npm",
+      "minHostVersion": ">=2026.3.0"
+    },
+    "compat": {
+      "pluginApi": ">=2026.3.0"
+    },
+    "build": {
+      "openclawVersion": "2026.9.1"
+    }
   },
   "devDependencies": {
-    "@types/node": "^24.13.3"
+    "@types/node": "^24.13.3",
+    "typescript": "^5.8.2"
   }
 }

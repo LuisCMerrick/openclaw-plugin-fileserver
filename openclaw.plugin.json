@@ -1,6 +1,7 @@
 {
   "id": "fileserver",
   "name": "OpenClaw Fileserver",
+  "version": "1.0.1",
   "description": "Secure file transport service with clean URLs, drop portals, and range support.",
   "activation": {
     "onStartup": true,
@@ -21,9 +22,6 @@
     }
   ],
   "contracts": {
-    "services": [
-      "fileserver"
-    ],
     "tools": [
       "fileserver_share",
       "fileserver_receive",
