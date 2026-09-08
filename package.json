@@ -1,6 +1,6 @@
 {
   "name": "openclaw-plugin-fileserver",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Native secure file sharing and upload drop portal plugin for OpenClaw with single-port Gateway routing",
   "type": "module",
   "main": "dist/index.js",
