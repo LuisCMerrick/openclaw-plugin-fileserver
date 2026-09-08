@@ -3,6 +3,7 @@ import * as fs from "node:fs";
 import * as path from "node:path";
 import { safeResolve, generateShortCode, validateHmacSignature, formatRFC5987ContentDisposition, } from "./security.js";
 import { resolveBaseUrl, parseFlexibleDuration, getDateMinuteSubdir } from "./config.js";
+import { recordSeenHost } from "./domain.js";
 import { renderErrorPage, renderUploadPage } from "./templates.js";
 import { streamMultipartFiles, extractBoundary } from "./multipart.js";
 // Common mime type mapping
@@ -112,6 +113,10 @@ export class FileserverServer {
     }
     handleRequest(req, res) {
         this.securityHeadersMiddleware(res);
+        const incomingHost = (req.headers["x-forwarded-host"] || req.headers.host);
+        if (incomingHost) {
+            recordSeenHost(incomingHost);
+        }
         const parsedUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
         const pathname = parsedUrl.pathname;
         if (pathname === "/healthz") {

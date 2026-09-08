@@ -11,6 +11,7 @@ import {
   formatRFC5987ContentDisposition,
 } from "./security.js";
 import { resolveBaseUrl, parseFlexibleDuration, getDateMinuteSubdir } from "./config.js";
+import { recordSeenHost } from "./domain.js";
 import { renderErrorPage, renderUploadPage } from "./templates.js";
 import { streamMultipartFiles, extractBoundary } from "./multipart.js";
 
@@ -132,6 +133,10 @@ export class FileserverServer {
 
   public handleRequest(req: http.IncomingMessage, res: http.ServerResponse): void {
     this.securityHeadersMiddleware(res);
+    const incomingHost = (req.headers["x-forwarded-host"] || req.headers.host) as string | undefined;
+    if (incomingHost) {
+      recordSeenHost(incomingHost);
+    }
     const parsedUrl = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
     const pathname = parsedUrl.pathname;
 
