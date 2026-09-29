@@ -8,6 +8,19 @@ import { safeResolve, generateShortCode } from "./security.js";
 import { formatBytes } from "./templates.js";
 import type { ShareRecord, UploadChannel } from "./types.js";
 
+
+function jsonResult(payload: any) {
+  return {
+    content: [
+      {
+        type: "text" as const,
+        text: JSON.stringify(payload, null, 2),
+      },
+    ],
+    details: payload,
+  };
+}
+
 export default function register(api: any) {
   const pluginConfigOverrides = api.config?.plugins?.entries?.["fileserver"]?.config || {};
   const cfg = loadConfig(undefined, pluginConfigOverrides);
@@ -176,16 +189,16 @@ export default function register(api: any) {
           absPath = resolved.absPath;
           relPath = resolved.relPath;
         } catch (err: any) {
-          return { error: `Security check failed: ${err.message}` };
+          return jsonResult({ error: `Security check failed: ${err.message}` });
         }
 
         if (!fs.existsSync(absPath)) {
-          return { error: `File not found: ${absPath}` };
+          return jsonResult({ error: `File not found: ${absPath}` });
         }
 
         const stat = fs.statSync(absPath);
         if (stat.isDirectory()) {
-          return { error: "Cannot share a directory; target must be a regular file." };
+          return jsonResult({ error: "Cannot share a directory; target must be a regular file." });
         }
 
         let ttlMs = parseFlexibleDuration(cfg.default_ttl) || 24 * 3600 * 1000;
@@ -221,7 +234,7 @@ export default function register(api: any) {
         const baseURL = resolveBaseUrl(cfg);
         const downloadURL = `${baseURL}/${code}/${encodeURIComponent(filename)}`;
 
-        return {
+        return jsonResult({
           ok: true,
           code,
           url: downloadURL,
@@ -232,7 +245,7 @@ export default function register(api: any) {
           expires_at: expiresDate.toISOString(),
           max_downloads: maxDownloads,
           inline,
-        };
+        });
       },
     };
   }, { optional: true });
@@ -272,7 +285,7 @@ export default function register(api: any) {
           absDir = resolved.absPath;
           relDir = resolved.relPath;
         } catch (err: any) {
-          return { error: `Security check failed on target directory: ${err.message}` };
+          return jsonResult({ error: `Security check failed on target directory: ${err.message}` });
         }
 
         if (!fs.existsSync(absDir)) {
@@ -308,7 +321,7 @@ export default function register(api: any) {
         const uploadBaseURL = resolveUploadBaseUrl(cfg);
         const uploadURL = `${uploadBaseURL}/${code}/`;
 
-        return {
+        return jsonResult({
           ok: true,
           code,
           url: uploadURL,
@@ -316,7 +329,7 @@ export default function register(api: any) {
           workspace_rel_dir: relDir,
           expires_at: expiresDate.toISOString(),
           max_uploads: maxUploads,
-        };
+        });
       },
     };
   }, { optional: true });
@@ -330,7 +343,7 @@ export default function register(api: any) {
         properties: {},
       },
       async execute() {
-        return store.list();
+        return jsonResult(store.list());
       },
     };
   }, { optional: true });
@@ -352,9 +365,9 @@ export default function register(api: any) {
       async execute(_toolCallId: string, params: any) {
         const res = store.revoke(params.code);
         if (!res.revoked) {
-          return { ok: false, error: `Code "${params.code}" not found.` };
+          return jsonResult({ ok: false, error: `Code "${params.code}" not found.` });
         }
-        return { ok: true, message: `Successfully revoked ${res.kind} with code "${params.code}".` };
+        return jsonResult({ ok: true, message: `Successfully revoked ${res.kind} with code "${params.code}".` });
       },
     };
   }, { optional: true });
