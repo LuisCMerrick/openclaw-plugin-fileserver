@@ -1,12 +1,12 @@
 {
-  "name": "openclaw-plugin-fileserver",
+  "name": "@LuisCMerrick/openclaw-plugin-fileserver",
   "version": "1.0.2",
   "description": "Native secure file sharing and upload drop portal plugin for OpenClaw with single-port Gateway routing",
   "type": "module",
   "main": "dist/index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ming79486/openclaw-plugin-fileserver.git"
+    "url": "https://github.com/LuisCMerrick/openclaw-plugin-fileserver.git"
   },
   "keywords": [
     "openclaw",
@@ -16,7 +16,7 @@
     "streaming-upload",
     "range-download"
   ],
-  "author": "ming79486",
+  "author": "LuisCMerrick",
   "license": "MIT",
   "scripts": {
     "build": "tsc",

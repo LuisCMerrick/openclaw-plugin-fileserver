@@ -59,7 +59,7 @@ export function detectActiveDomain() {
     if (envDomain) {
         return envDomain;
     }
-    // 优先使用客户端/用户实际访问网关时捕获的真实 Host
+    // Prioritize active host observed from real client/user traffic hitting the Gateway
     const seenHost = getRecordedHost();
     if (seenHost) {
         return seenHost;
@@ -113,7 +113,7 @@ export function detectActiveDomain() {
                         }
                     }
                     if (currentNames.length > 0) {
-                        // 优先匹配反向代理到 OpenClaw Gateway (18789 / openclaw_backend) 的虚拟主机
+                        // Prioritize vhosts proxying to OpenClaw Gateway (18789 / openclaw_backend)
                         const isOpenClawVhost = content.includes("openclaw_backend") ||
                             content.includes("18789") ||
                             file.toLowerCase().includes("openclaw");

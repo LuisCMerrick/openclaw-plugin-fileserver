@@ -58,7 +58,7 @@ export function renderErrorPage(status, title, message) {
     }
     // Built-in fallback
     return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><title>${status} - ${escapeHtml(title)}</title>
 <style>
@@ -84,9 +84,9 @@ export function renderUploadPage(channel, maxBytes) {
     loadTemplates();
     const expTime = new Date(channel.expires_at).getTime();
     const remainingSeconds = Math.max(0, Math.floor((expTime - Date.now()) / 1000));
-    let limitDesc = "无限制";
+    let limitDesc = "Unlimited";
     if (channel.max_uploads > 0) {
-        limitDesc = `${channel.max_uploads} 个文件 (已接收 ${channel.upload_count})`;
+        limitDesc = `${channel.max_uploads} files (${channel.upload_count} received)`;
     }
     let maxSizeDesc = `${(maxBytes / (1024 * 1024 * 1024)).toFixed(1)} GB`;
     if (maxBytes < 1024 * 1024 * 1024) {
@@ -113,7 +113,7 @@ export function renderUploadPage(channel, maxBytes) {
                     <span class="file-name" title="${escapeHtml(f.filename)}">${escapeHtml(f.filename)}</span>
                     <div style="display:flex;align-items:center;gap:10px;">
                         <span class="file-meta">${escapeHtml(formatBytes(f.size))} · ${escapeHtml(timeStr)}</span>
-                        <a href="/d/${escapeHtml(channel.code)}/${encodeURIComponent(f.filename)}" target="_blank" class="btn-sm">下载</a>
+                        <a href="/d/${escapeHtml(channel.code)}/${encodeURIComponent(f.filename)}" target="_blank" class="btn-sm">Download</a>
                     </div>
                 </div>`;
                 }
@@ -124,7 +124,7 @@ export function renderUploadPage(channel, maxBytes) {
                 rendered = rendered.replace(filesSectionRegex, replacedFilesBlock);
             }
             else {
-                const emptyBlock = `<div class="empty-state" id="empty-state">暂无已上传文件</div>`;
+                const emptyBlock = `<div class="empty-state" id="empty-state">No uploaded files yet</div>`;
                 rendered = rendered.replace(filesSectionRegex, emptyBlock);
             }
         }

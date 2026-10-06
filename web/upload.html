@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文件投递通道 - OpenClaw</title>
+    <title>File Drop Portal - OpenClaw</title>
     <style>
         :root {
             --bg-color: #090d13;
@@ -101,7 +101,6 @@
             cursor: pointer;
             transition: all 0.2s ease;
             background: rgba(19, 25, 35, 0.5);
-            outline: none;
         }
         .dropzone:hover, .dropzone.dragover {
             border-color: var(--accent-color);
@@ -118,11 +117,10 @@
             margin-bottom: 6px;
         }
         .dropzone-hint {
-            font-size: 12px;
+            font-size: 13px;
             color: var(--text-secondary);
         }
         #file-input { display: none; }
-        
         .upload-queue {
             margin-top: 20px;
             display: flex;
@@ -130,7 +128,7 @@
             gap: 12px;
         }
         .queue-item {
-            background: var(--surface-elevated);
+            background-color: var(--surface-elevated);
             border: 1px solid var(--border);
             border-radius: 8px;
             padding: 12px 16px;
@@ -142,120 +140,113 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13px;
+            font-size: 14px;
         }
         .queue-filename {
             font-weight: 500;
+            max-width: 75%;
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-width: 75%;
         }
         .queue-filesize {
             color: var(--text-secondary);
-            font-family: var(--font-mono);
             font-size: 12px;
+            font-family: var(--font-mono);
         }
         .progress-bar-wrap {
             height: 6px;
-            background: #21262d;
+            background-color: var(--border);
             border-radius: 3px;
             overflow: hidden;
-            position: relative;
         }
         .progress-bar-fill {
             height: 100%;
+            background-color: var(--accent-color);
             width: 0%;
-            background: var(--accent-color);
-            transition: width 0.15s linear;
+            transition: width 0.15s ease;
         }
         .queue-status {
-            font-size: 11px;
+            font-size: 12px;
             color: var(--text-secondary);
             display: flex;
             justify-content: space-between;
         }
         .status-success { color: var(--success-color); }
         .status-error { color: var(--danger-color); }
-
-        .btn-sm {
-            background: rgba(88, 166, 255, 0.12);
-            color: var(--accent-color);
-            border: 1px solid var(--border);
-            border-radius: 4px;
-            padding: 3px 8px;
-            font-size: 11px;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.15s ease;
-            white-space: nowrap;
-        }
-        .btn-sm:hover {
-            background: var(--accent-color);
-            color: #0d1117;
-            border-color: var(--accent-color);
-        }
-
         .btn-submit {
-            margin-top: 16px;
+            margin-top: 20px;
             width: 100%;
-            padding: 12px 20px;
-            background: var(--accent-color);
-            color: #0d1117;
-            font-weight: 600;
-            font-size: 14px;
+            padding: 12px;
+            background-color: var(--accent-color);
+            color: #fff;
             border: none;
             border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            transition: background 0.15s ease;
+            transition: background 0.2s ease;
         }
         .btn-submit:hover:not(:disabled) {
-            background: var(--accent-hover);
+            background-color: var(--accent-hover);
         }
         .btn-submit:disabled {
             opacity: 0.5;
             cursor: not-allowed;
         }
-
+        .btn-sm {
+            padding: 4px 10px;
+            font-size: 12px;
+            background-color: var(--surface-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s;
+        }
+        .btn-sm:hover {
+            border-color: var(--border-hover);
+            color: var(--accent-color);
+        }
         .section-title {
             font-size: 14px;
             font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
+            margin-bottom: 16px;
+            color: #f0f6fc;
+            letter-spacing: -0.2px;
         }
         .history-list {
             display: flex;
             flex-direction: column;
-            gap: 8px;
+            gap: 10px;
         }
         .history-item {
-            background: var(--surface-elevated);
+            background-color: var(--surface-elevated);
             border: 1px solid var(--border);
+            border-radius: 8px;
             padding: 10px 14px;
-            border-radius: 6px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 13px;
         }
         .file-name {
+            font-size: 13px;
+            font-family: var(--font-mono);
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
-            max-width: 65%;
+            max-width: 60%;
         }
         .file-meta {
-            color: var(--text-secondary);
             font-size: 12px;
-            font-family: var(--font-mono);
+            color: var(--text-secondary);
         }
         .empty-state {
+            text-align: center;
+            padding: 24px 0;
             color: var(--text-secondary);
             font-size: 13px;
-            text-align: center;
-            padding: 16px;
         }
         .footer-note {
             text-align: center;
@@ -268,50 +259,50 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>OpenClaw 临时文件投递</h1>
-            <p>通过独立安全通道直接向工作区投递文件</p>
+            <h1>OpenClaw File Drop Portal</h1>
+            <p>Upload files directly to the workspace through a secure channel</p>
         </div>
 
         <div class="card">
             <div class="channel-info">
                 <div class="info-item">
-                    <span class="info-label">通道代码</span>
+                    <span class="info-label">Channel Code</span>
                     <div style="display:flex;align-items:center;gap:6px;">
                         <span class="info-value badge">{{.Code}}</span>
-                        <button type="button" class="btn-sm" id="btn-copy-link" onclick="copyLink()">复制链接</button>
+                        <button type="button" class="btn-sm" id="btn-copy-link" onclick="copyLink()">Copy Link</button>
                     </div>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">当前界面</span>
-                    <span class="info-value" id="current-host" style="font-size:12px;color:var(--text-secondary);">自适应中...</span>
+                    <span class="info-label">Active Host</span>
+                    <span class="info-value" id="current-host" style="font-size:12px;color:var(--text-secondary);">Detecting...</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">剩余有效时间</span>
-                    <span class="info-value" id="countdown">计算中...</span>
+                    <span class="info-label">Expires In</span>
+                    <span class="info-value" id="countdown">Calculating...</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">目标目录</span>
+                    <span class="info-label">Target Directory</span>
                     <span class="info-value">{{.RelDir}}</span>
                 </div>
                 <div class="info-item">
-                    <span class="info-label">上传限制</span>
+                    <span class="info-label">Upload Limit</span>
                     <span class="info-value">{{.LimitDesc}}</span>
                 </div>
             </div>
 
             <div class="dropzone" id="dropzone">
                 <div class="dropzone-icon">⇪</div>
-                <div class="dropzone-title">拖拽文件至此处，或点击浏览</div>
-                <div class="dropzone-hint">单次请求上限 {{.MaxSizeDesc}} · 支持批量多选</div>
+                <div class="dropzone-title">Drag & drop files here, or click to browse</div>
+                <div class="dropzone-hint">Max {{.MaxSizeDesc}} per request · Multiple files supported</div>
                 <input type="file" id="file-input" multiple>
             </div>
 
             <div class="upload-queue" id="queue-container"></div>
-            <button class="btn-submit" id="btn-upload" style="display:none;" disabled>开始上传</button>
+            <button class="btn-submit" id="btn-upload" style="display:none;" disabled>Start Upload</button>
         </div>
 
         <div class="card">
-            <div class="section-title">通道已接收记录</div>
+            <div class="section-title">Received Files</div>
             {{if .Files}}
             <div class="history-list" id="history-list">
                 {{range .Files}}
@@ -319,18 +310,18 @@
                     <span class="file-name" title="{{.Filename}}">{{.Filename}}</span>
                     <div style="display:flex;align-items:center;gap:10px;">
                         <span class="file-meta">{{.SizeStr}} · {{.TimeStr}}</span>
-                        <a href="/d/{{$.Code}}/{{.Filename}}" target="_blank" class="btn-sm">下载</a>
+                        <a href="/d/{{$.Code}}/{{.Filename}}" target="_blank" class="btn-sm">Download</a>
                     </div>
                 </div>
                 {{end}}
             </div>
             {{else}}
-            <div class="empty-state" id="empty-state">暂无已上传文件</div>
+            <div class="empty-state" id="empty-state">No uploaded files yet</div>
             {{end}}
         </div>
 
         <div class="footer-note">
-            端到端流式落盘 · SHA256 审计 · 沙箱物理隔离
+            End-to-End Streaming · SHA-256 Audit · Physical Sandbox Isolation
         </div>
     </div>
 
@@ -344,10 +335,10 @@
             window.copyLink = function() {
                 const btn = document.getElementById('btn-copy-link');
                 navigator.clipboard.writeText(window.location.href).then(() => {
-                    btn.innerText = '已复制!';
-                    setTimeout(() => btn.innerText = '复制链接', 2000);
+                    btn.innerText = 'Copied!';
+                    setTimeout(() => btn.innerText = 'Copy Link', 2000);
                 }).catch(() => {
-                    prompt('请复制当前通道完整链接:', window.location.href);
+                    prompt('Copy portal link:', window.location.href);
                 });
             };
 
@@ -355,7 +346,7 @@
             const countdownEl = document.getElementById('countdown');
             function updateCountdown() {
                 if (remaining <= 0) {
-                    countdownEl.innerText = "已过期";
+                    countdownEl.innerText = "Expired";
                     countdownEl.style.color = "var(--danger-color)";
                     return;
                 }
@@ -429,7 +420,7 @@
                 }
                 btnUpload.style.display = 'block';
                 btnUpload.disabled = false;
-                btnUpload.innerText = '开始上传 (' + selectedFiles.length + ' 个文件)';
+                btnUpload.innerText = 'Upload ' + selectedFiles.length + ' file(s)';
 
                 selectedFiles.forEach((item, idx) => {
                     const row = document.createElement('div');
@@ -444,7 +435,7 @@
                             <div class="progress-bar-fill" id="bar-${idx}"></div>
                         </div>
                         <div class="queue-status">
-                            <span id="status-${idx}">等待上传...</span>
+                            <span id="status-${idx}">Pending...</span>
                             <span id="percent-${idx}">0%</span>
                         </div>
                     `;
@@ -465,7 +456,7 @@
             function uploadNext(index) {
                 if (index >= selectedFiles.length) {
                     btnUpload.disabled = true;
-                    btnUpload.innerText = '全部上传完成';
+                    btnUpload.innerText = 'All uploads completed';
                     setTimeout(() => window.location.reload(), 1500);
                     return;
                 }
@@ -477,13 +468,13 @@
                 }
 
                 btnUpload.disabled = true;
-                btnUpload.innerText = '正在上传第 ' + (index + 1) + '/' + selectedFiles.length + ' 个...';
+                btnUpload.innerText = 'Uploading ' + (index + 1) + '/' + selectedFiles.length + '...';
 
                 const bar = document.getElementById('bar-' + index);
                 const status = document.getElementById('status-' + index);
                 const percent = document.getElementById('percent-' + index);
 
-                status.innerText = '正在上传...';
+                status.innerText = 'Uploading...';
 
                 const xhr = new XMLHttpRequest();
                 const formData = new FormData();
@@ -503,29 +494,29 @@
                         bar.style.background = 'var(--success-color)';
                         percent.innerText = '100%';
                         status.className = 'status-success';
-                        status.innerText = '上传成功';
+                        status.innerText = 'Uploaded';
                         item.uploaded = true;
                         uploadNext(index + 1);
                     } else {
                         bar.style.background = 'var(--danger-color)';
                         status.className = 'status-error';
-                        let errText = '上传失败 (' + xhr.status + ')';
+                        let errText = 'Upload failed (' + xhr.status + ')';
                         try {
                             const resp = JSON.parse(xhr.responseText);
                             if (resp && resp.error) errText = resp.error;
                         } catch(e) {}
                         status.innerText = errText;
                         btnUpload.disabled = false;
-                        btnUpload.innerText = '重试未完成的上传';
+                        btnUpload.innerText = 'Retry remaining';
                     }
                 });
 
                 xhr.addEventListener('error', () => {
                     bar.style.background = 'var(--danger-color)';
                     status.className = 'status-error';
-                    status.innerText = '网络连接异常';
+                    status.innerText = 'Network error';
                     btnUpload.disabled = false;
-                    btnUpload.innerText = '重试未完成的上传';
+                    btnUpload.innerText = 'Retry remaining';
                 });
 
                 xhr.open('POST', window.location.pathname, true);

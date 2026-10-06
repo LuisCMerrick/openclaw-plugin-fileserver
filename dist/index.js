@@ -21,7 +21,7 @@ export default function register(api) {
     const cfg = loadConfig(undefined, pluginConfigOverrides);
     const store = new Store(cfg.data_file, cfg.upload_data_file);
     const serverInstance = new FileserverServer(cfg, store);
-    // 1. 注册 Gateway 原生 HTTP 路由 (直接挂载在网关 18789 端口，Nginx 仅需保留单个 location /)
+    // 1. Register Gateway native HTTP routes (mounted directly on Gateway port 18789; Nginx only needs a single location /)
     const routeHandler = (req, res) => {
         serverInstance.handleRequest(req, res);
     };
@@ -52,7 +52,7 @@ export default function register(api) {
     catch (err) {
         api.logger?.error?.(`[openclaw-fileserver] Failed to register HTTP routes: ${err.message}`);
     }
-    // 2. 注册 Background Service (后台定时数据修剪)
+    // 2. Register Background Service (scheduled data pruning)
     api.registerService?.({
         id: "fileserver",
         async start(ctx) {
@@ -71,7 +71,7 @@ export default function register(api) {
             await serverInstance.stop();
         },
     });
-    // 3. 注册 OpenClaw 原生 CLI 子命令: `openclaw fileserver <subcommand>`
+    // 3. Register OpenClaw native CLI subcommands: `openclaw fileserver <subcommand>`
     try {
         api.registerCli?.(async ({ program }) => {
             const fsCmd = program.command("fileserver").description("OpenClaw Secure File Transport Service");
@@ -136,7 +136,7 @@ export default function register(api) {
     catch (err) {
         api.logger?.warn?.(`[openclaw-fileserver] Failed to register CLI commands: ${err.message}`);
     }
-    // 4. 注册 Agent 原生 Tools
+    // 4. Register Agent native Tools
     api.registerTool?.((ctx) => {
         return {
             name: "fileserver_share",

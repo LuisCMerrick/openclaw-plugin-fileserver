@@ -48,7 +48,7 @@ export class FileserverServer {
                 }
                 catch (err) {
                     console.error("[openclaw-fileserver] Unhandled error:", err);
-                    this.renderError(res, 500, "系统错误", "处理请求时发生内部异常");
+                    this.renderError(res, 500, "Internal Server Error", "An unexpected error occurred while processing the request");
                 }
             };
             this.server = http.createServer(app);
@@ -136,7 +136,7 @@ export class FileserverServer {
             this.handleAPIShare(req, res, parsedUrl);
             return;
         }
-        this.renderError(res, 404, "页面不存在", "未匹配到任何有效的服务路由");
+        this.renderError(res, 404, "Not Found", "No matching service route found");
     }
     handleDownload(req, res, parsedUrl) {
         if (req.method !== "GET" && req.method !== "HEAD") {
@@ -146,7 +146,7 @@ export class FileserverServer {
         }
         const subPath = parsedUrl.pathname.slice(3); // remove '/d/'
         if (!subPath) {
-            this.renderError(res, 404, "文件不存在", "请求的下载路径为空");
+            this.renderError(res, 404, "Not Found", "Download path is empty");
             return;
         }
         // Check legacy HMAC
@@ -166,19 +166,19 @@ export class FileserverServer {
                 this.handleUploadChannelDownload(req, res, uploadChannel, parts, parsedUrl);
                 return;
             }
-            this.renderError(res, 404, "分享不存在", "未找到该短码对应的文件分享");
+            this.renderError(res, 404, "Not Found", "File share not found for the provided code");
             return;
         }
         if (share.revoked) {
-            this.renderError(res, 410, "链接已被吊销", "该分享链接已被创建者主动撤销");
+            this.renderError(res, 410, "Gone", "This share link has been revoked by the owner");
             return;
         }
         if (new Date() > new Date(share.expires_at)) {
-            this.renderError(res, 410, "链接已过期", "该文件的分享有效期已截止");
+            this.renderError(res, 410, "Gone", "This share link has expired");
             return;
         }
         if (share.max_downloads > 0 && share.download_count >= share.max_downloads) {
-            this.renderError(res, 410, "下载次数已达上限", "该分享链接已达到最大允许下载次数");
+            this.renderError(res, 410, "Gone", "Maximum download limit reached for this share");
             return;
         }
         let absPath;
@@ -188,16 +188,16 @@ export class FileserverServer {
         }
         catch (err) {
             console.warn(`[openclaw-fileserver] Security sandbox violation for code ${code}:`, err);
-            this.renderError(res, 403, "禁止访问", "目标文件超出安全沙箱范围");
+            this.renderError(res, 403, "Forbidden", "Target file is outside the allowed sandbox");
             return;
         }
         if (!fs.existsSync(absPath)) {
-            this.renderError(res, 404, "文件不存在", "磁盘上未找到目标文件");
+            this.renderError(res, 404, "Not Found", "Target file not found on disk");
             return;
         }
         const stat = fs.statSync(absPath);
         if (stat.isDirectory()) {
-            this.renderError(res, 403, "禁止访问", "目标路径为目录，不支持直接下载");
+            this.renderError(res, 403, "Forbidden", "Target path is a directory and cannot be downloaded directly");
             return;
         }
         let inline = share.inline;
@@ -232,15 +232,15 @@ export class FileserverServer {
     handleLegacyDownload(req, res, relPath, sig, expiresStr, parsedUrl) {
         const expires = parseInt(expiresStr, 10);
         if (isNaN(expires)) {
-            this.renderError(res, 400, "参数错误", "无效的过期时间戳");
+            this.renderError(res, 400, "Bad Request", "Invalid expiration timestamp");
             return;
         }
         if (!this.cfg.secret_key) {
-            this.renderError(res, 403, "功能未启用", "服务器未配置 HMAC 密钥");
+            this.renderError(res, 403, "Forbidden", "HMAC secret key is not configured");
             return;
         }
         if (!validateHmacSignature(this.cfg.secret_key, relPath, expires, sig)) {
-            this.renderError(res, 403, "签名验证失败", "下载签名不匹配或已过期");
+            this.renderError(res, 403, "Forbidden", "Invalid or expired download signature");
             return;
         }
         let absPath;
@@ -248,11 +248,11 @@ export class FileserverServer {
             absPath = safeResolve(this.cfg.allowed_root, relPath).absPath;
         }
         catch {
-            this.renderError(res, 403, "禁止访问", "路径超出安全沙箱");
+            this.renderError(res, 403, "Forbidden", "Path is outside the allowed sandbox");
             return;
         }
         if (!fs.existsSync(absPath)) {
-            this.renderError(res, 404, "文件不存在", "磁盘上未找到文件");
+            this.renderError(res, 404, "Not Found", "File not found on disk");
             return;
         }
         const stat = fs.statSync(absPath);
@@ -262,11 +262,11 @@ export class FileserverServer {
     }
     handleUploadChannelDownload(req, res, channel, parts, parsedUrl) {
         if (channel.revoked) {
-            this.renderError(res, 410, "通道已撤销", "该通道已被创建者主动关闭");
+            this.renderError(res, 410, "Gone", "This channel has been revoked by the owner");
             return;
         }
         if (new Date() > new Date(channel.expires_at)) {
-            this.renderError(res, 410, "通道已过期", "该通道的有效期已截止");
+            this.renderError(res, 410, "Gone", "This channel has expired");
             return;
         }
         let reqFilename = "";
@@ -277,7 +277,7 @@ export class FileserverServer {
             reqFilename = channel.files[channel.files.length - 1].filename;
         }
         else {
-            this.renderError(res, 404, "文件不存在", "该通道尚未接收到任何文件");
+            this.renderError(res, 404, "Not Found", "No files uploaded to this channel yet");
             return;
         }
         let filePath = path.join(channel.target_dir, reqFilename);
@@ -292,11 +292,11 @@ export class FileserverServer {
             absPath = safeResolve(this.cfg.allowed_root, filePath).absPath;
         }
         catch {
-            this.renderError(res, 403, "禁止访问", "目标文件超出安全沙箱");
+            this.renderError(res, 403, "Forbidden", "Target file is outside the allowed sandbox");
             return;
         }
         if (!fs.existsSync(absPath)) {
-            this.renderError(res, 404, "文件不存在", "目标文件在磁盘上未找到");
+            this.renderError(res, 404, "Not Found", "Target file not found on disk");
             return;
         }
         const stat = fs.statSync(absPath);
@@ -359,24 +359,24 @@ export class FileserverServer {
         const parts = subPath.replace(/^\/+|\/+$/g, "").split("/");
         const code = parts[0];
         if (!code) {
-            this.renderError(res, 404, "通道不存在", "未指定有效的投递通道短码");
+            this.renderError(res, 404, "Not Found", "Invalid upload drop portal code");
             return;
         }
         const channel = this.store.getUploadChannel(code);
         if (!channel) {
-            this.renderError(res, 404, "投递通道不存在", "该上传通道未创建或已被移除");
+            this.renderError(res, 404, "Not Found", "Upload channel does not exist or has been removed");
             return;
         }
         if (channel.revoked) {
-            this.renderError(res, 410, "投递通道已撤销", "该上传通道已被创建者主动关闭");
+            this.renderError(res, 410, "Gone", "This upload channel has been revoked by the owner");
             return;
         }
         if (new Date() > new Date(channel.expires_at)) {
-            this.renderError(res, 410, "投递通道已过期", "该上传通道的有效期已截止");
+            this.renderError(res, 410, "Gone", "This upload channel has expired");
             return;
         }
         if (channel.max_uploads > 0 && channel.upload_count >= channel.max_uploads) {
-            this.renderError(res, 410, "上传文件数已满", "该投递通道已达到最大允许上传文件总数");
+            this.renderError(res, 410, "Gone", "Upload limit reached for this channel");
             return;
         }
         if (req.method === "GET") {
@@ -388,7 +388,7 @@ export class FileserverServer {
             const contentType = req.headers["content-type"] || "";
             const boundary = extractBoundary(contentType);
             if (!boundary) {
-                this.writeJSONError(res, 400, "无效的表单数据: 缺少 multipart boundary");
+                this.writeJSONError(res, 400, "Invalid form data: missing multipart boundary");
                 return;
             }
             let absTargetDir;
@@ -399,7 +399,7 @@ export class FileserverServer {
                 relTargetDir = resolved.relPath;
             }
             catch {
-                this.writeJSONError(res, 403, "目标上传目录超出安全沙箱");
+                this.writeJSONError(res, 403, "Target upload directory is outside the allowed sandbox");
                 return;
             }
             let effectiveTargetDir = absTargetDir;
@@ -430,7 +430,7 @@ export class FileserverServer {
                     }
                 }
                 if (uploadedRecords.length === 0) {
-                    this.writeJSONError(res, 400, "未接收到有效文件");
+                    this.writeJSONError(res, 400, "No valid files received");
                     return;
                 }
                 res.writeHead(200, { "Content-Type": "application/json" });
@@ -438,7 +438,7 @@ export class FileserverServer {
             }
             catch (err) {
                 console.error("[openclaw-fileserver] Upload stream error:", err);
-                this.writeJSONError(res, 500, `上传处理失败: ${err.message}`);
+                this.writeJSONError(res, 500, `Upload failed: ${err.message}`);
             }
             return;
         }
