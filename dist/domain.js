@@ -79,64 +79,7 @@ export function detectActiveDomain() {
             return val;
         }
     }
-    const vhostDirs = [
-        "/usr/local/nginx/conf/vhost",
-        "/etc/nginx/sites-enabled",
-        "/etc/nginx/conf.d",
-        "/etc/nginx/vhost",
-    ];
-    const serverNameRegex = /^\s*server_name\s+([^;]+);/im;
-    let fallbackDomain = "";
-    for (const dir of vhostDirs) {
-        if (!fs.existsSync(dir))
-            continue;
-        try {
-            const files = fs.readdirSync(dir);
-            for (const file of files) {
-                if (!file.endsWith(".conf") && !dir.includes("sites-enabled"))
-                    continue;
-                const fullPath = path.join(dir, file);
-                try {
-                    const content = fs.readFileSync(fullPath, "utf-8");
-                    const lines = content.split("\n");
-                    let currentNames = [];
-                    for (const line of lines) {
-                        const match = serverNameRegex.exec(line);
-                        if (match && match[1]) {
-                            const names = match[1].trim().split(/\s+/);
-                            for (let name of names) {
-                                name = name.trim();
-                                if (name && name !== "_" && name !== "localhost" && !name.startsWith("*")) {
-                                    currentNames.push(name);
-                                }
-                            }
-                        }
-                    }
-                    if (currentNames.length > 0) {
-                        // Prioritize vhosts proxying to OpenClaw Gateway (18789 / openclaw_backend)
-                        const isOpenClawVhost = content.includes("openclaw_backend") ||
-                            content.includes("18789") ||
-                            file.toLowerCase().includes("openclaw");
-                        if (isOpenClawVhost) {
-                            return currentNames[0];
-                        }
-                        if (!fallbackDomain) {
-                            fallbackDomain = currentNames[0];
-                        }
-                    }
-                }
-                catch {
-                    // ignore unreadable files
-                }
-            }
-        }
-        catch {
-            // ignore
-        }
-    }
-    if (fallbackDomain) {
-        return fallbackDomain;
-    }
+    const vhostDirs = [];
     const hostname = os.hostname();
     if (hostname) {
         return hostname;
@@ -147,15 +90,26 @@ export function requestOrigin(req) {
     let scheme = "https";
     const proto = req.headers["x-forwarded-proto"];
     if (typeof proto === "string" && proto.length > 0) {
-        scheme = proto;
+        scheme = proto.split(",")[0]?.trim() || "https";
+    }
+    else if (req.socket?.encrypted || req.headers["x-forwarded-ssl"] === "on") {
+        scheme = "https";
     }
     else {
-        const host = (req.headers["x-forwarded-host"] || req.headers.host || "");
-        if (host === "127.0.0.1:18790" || host.startsWith("localhost")) {
+        const rawHost = (req.headers["x-forwarded-host"] || req.headers.host || "");
+        const hostOnly = rawHost.split(",")[0]?.trim().split(":")[0] || "";
+        if (hostOnly === "localhost" ||
+            hostOnly.startsWith("127.") ||
+            hostOnly === "0.0.0.0" ||
+            hostOnly === "::1" ||
+            hostOnly.startsWith("192.168.") ||
+            hostOnly.startsWith("10.") ||
+            /^172\.(1[6-9]|2\d|3[01])$/.test(hostOnly)) {
             scheme = "http";
         }
     }
-    let host = (req.headers["x-forwarded-host"] || req.headers.host);
+    const rawHostHeader = (req.headers["x-forwarded-host"] || req.headers.host);
+    let host = rawHostHeader ? rawHostHeader.split(",")[0]?.trim() : undefined;
     if (host) {
         recordSeenHost(host);
     }

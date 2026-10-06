@@ -66,15 +66,28 @@ export class FileserverServer {
 
       this.server = http.createServer(app);
 
-      // Parse bind_addr (e.g. "0.0.0.0:18790", ":18790", "18790", "127.0.0.1:18790")
-      let port = 18790;
+      // Parse bind_addr (e.g. "0.0.0.0:8080", ":8080", "8080")
+      let port = 0;
       let host = "0.0.0.0";
-      const parts = this.cfg.bind_addr.split(":");
-      if (parts.length === 2) {
-        if (parts[0]) host = parts[0];
-        port = parseInt(parts[1]!, 10) || 18790;
-      } else if (parts.length === 1 && !isNaN(parseInt(parts[0]!, 10))) {
-        port = parseInt(parts[0]!, 10);
+      if (this.cfg.bind_addr) {
+        const trimmed = this.cfg.bind_addr.trim();
+        if (trimmed.includes(":")) {
+          const parts = trimmed.split(":");
+          if (parts[0]) host = parts[0];
+          const p = parseInt(parts[1]!, 10);
+          if (!isNaN(p) && p > 0) port = p;
+        } else if (!isNaN(parseInt(trimmed, 10))) {
+          port = parseInt(trimmed, 10);
+        } else if (trimmed && trimmed !== "none" && trimmed !== "disabled") {
+          host = trimmed;
+        }
+      }
+      if (!port) {
+        const envPort = process.env.FILESERVER_PORT || process.env.PORT;
+        if (envPort) {
+          const p = parseInt(envPort, 10);
+          if (!isNaN(p) && p > 0) port = p;
+        }
       }
 
       this.server.listen(port, host, () => {

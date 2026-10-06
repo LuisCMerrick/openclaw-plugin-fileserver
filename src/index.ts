@@ -27,7 +27,7 @@ export default function register(api: any) {
   const store = new Store(cfg.data_file, cfg.upload_data_file);
   const serverInstance = new FileserverServer(cfg, store);
 
-  // 1. Register Gateway native HTTP routes (mounted directly on Gateway port 18789; Nginx only needs a single location /)
+  // 1. Register Gateway native HTTP routes (mounted directly onto Gateway HTTP server; Nginx only needs a single location /)
   const routeHandler = (req: IncomingMessage, res: ServerResponse) => {
     serverInstance.handleRequest(req, res);
   };
