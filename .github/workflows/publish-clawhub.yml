@@ -1,0 +1,44 @@
+name: Publish to ClawHub
+
+on:
+  release:
+    types: [published]
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build plugin
+        run: npm run build
+
+      - name: Install ClawHub CLI
+        run: npm install -g clawhub@latest
+
+      - name: Authenticate with ClawHub
+        env:
+          CLAWHUB_TOKEN: ${{ secrets.CLAWHUB_TOKEN }}
+        run: |
+          clawhub login --token "$CLAWHUB_TOKEN"
+          clawhub whoami
+
+      - name: Publish package to ClawHub
+        run: clawhub package publish .
