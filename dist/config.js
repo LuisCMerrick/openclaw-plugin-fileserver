@@ -57,7 +57,58 @@ export function resolveConfigPath(configPath) {
     }
     return null;
 }
-export function getDefaultConfig() {
+export function resolveOpenClawGatewayConfig(apiConfig) {
+    if (apiConfig?.gateway) {
+        return apiConfig.gateway;
+    }
+    const stateDir = process.env.OPENCLAW_STATE_DIR || path.join(os.homedir(), ".openclaw");
+    const candidates = [
+        process.env.OPENCLAW_CONFIG_PATH,
+        path.join(stateDir, "openclaw.json"),
+        path.join(os.homedir(), ".config", "openclaw", "openclaw.json"),
+    ].filter(Boolean);
+    for (const p of candidates) {
+        try {
+            if (fs.existsSync(p)) {
+                const raw = JSON.parse(fs.readFileSync(p, "utf-8"));
+                if (raw?.gateway)
+                    return raw.gateway;
+            }
+        }
+        catch { }
+    }
+    return null;
+}
+export function resolveGatewayBindHost(gatewayCfg) {
+    const bind = gatewayCfg?.bind || process.env.OPENCLAW_GATEWAY_BIND;
+    const customHost = gatewayCfg?.customBindHost || process.env.OPENCLAW_GATEWAY_HOST;
+    if (bind === "lan")
+        return "0.0.0.0";
+    if (bind === "loopback")
+        return "127.0.0.1";
+    if (bind === "custom" && customHost)
+        return customHost.trim();
+    if (bind === "tailnet")
+        return "127.0.0.1";
+    if (bind === "auto") {
+        const isContainer = fs.existsSync("/.dockerenv") || process.env.CONTAINER === "docker";
+        return isContainer ? "0.0.0.0" : "127.0.0.1";
+    }
+    return "127.0.0.1";
+}
+export function resolveGatewayPort(gatewayCfg) {
+    if (gatewayCfg?.port && typeof gatewayCfg.port === "number") {
+        return gatewayCfg.port;
+    }
+    const envPort = process.env.OPENCLAW_GATEWAY_PORT || process.env.PORT;
+    if (envPort) {
+        const p = parseInt(envPort, 10);
+        if (!isNaN(p) && p > 0)
+            return p;
+    }
+    return 18789;
+}
+export function getDefaultConfig(gatewayConfig) {
     const defaultWs = resolveDefaultWorkspace();
     const { dataFile, uploadDataFile } = resolveDefaultDataFiles();
     return {
@@ -73,6 +124,7 @@ export function getDefaultConfig() {
         data_file: dataFile,
         upload_data_file: uploadDataFile,
         max_upload_bytes: 1024 * 1024 * 1024, // 1GB
+        gateway: gatewayConfig || resolveOpenClawGatewayConfig(),
     };
 }
 export function parseFlexibleDuration(s) {
@@ -125,8 +177,8 @@ export function resolveUploadTargetDir(specificDir, date = new Date()) {
     }
     return path.join(base, timeSubdir);
 }
-export function loadConfig(configPath, overrides) {
-    const cfg = getDefaultConfig();
+export function loadConfig(configPath, overrides, gatewayConfig) {
+    const cfg = getDefaultConfig(gatewayConfig);
     const targetPath = resolveConfigPath(configPath);
     if (targetPath && fs.existsSync(targetPath)) {
         try {
@@ -157,19 +209,19 @@ export function loadConfig(configPath, overrides) {
 }
 export function resolveBaseUrl(cfg, req) {
     if (req) {
-        return `${requestOrigin(req)}/d`;
+        return `${requestOrigin(req, cfg.gateway)}/d`;
     }
     if (cfg.base_url === "auto" || !cfg.base_url || cfg.base_url.startsWith("/")) {
-        return `https://${detectActiveDomain()}/d`;
+        return `https://${detectActiveDomain(cfg.gateway)}/d`;
     }
     return cfg.base_url.replace(/\/+$/, "");
 }
 export function resolveUploadBaseUrl(cfg, req) {
     if (req) {
-        return `${requestOrigin(req)}/uploads`;
+        return `${requestOrigin(req, cfg.gateway)}/uploads`;
     }
     if (cfg.upload_base_url === "auto" || !cfg.upload_base_url || cfg.upload_base_url.startsWith("/")) {
-        return `https://${detectActiveDomain()}/uploads`;
+        return `https://${detectActiveDomain(cfg.gateway)}/uploads`;
     }
     return cfg.upload_base_url.replace(/\/+$/, "");
 }

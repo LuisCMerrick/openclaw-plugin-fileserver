@@ -10,32 +10,102 @@ import {
   validateHmacSignature,
   formatRFC5987ContentDisposition,
 } from "./security.js";
-import { resolveBaseUrl, parseFlexibleDuration, getDateMinuteSubdir } from "./config.js";
+import { resolveBaseUrl, parseFlexibleDuration, getDateMinuteSubdir, resolveGatewayBindHost } from "./config.js";
 import { recordSeenHost } from "./domain.js";
 import { renderErrorPage, renderUploadPage } from "./templates.js";
 import { streamMultipartFiles, extractBoundary } from "./multipart.js";
 
-// Common mime type mapping
-const MIME_MAP: Record<string, string> = {
+// Comprehensive MIME type mapping
+export const MIME_MAP: Record<string, string> = {
+  // Web & Text
   ".html": "text/html; charset=utf-8",
+  ".htm": "text/html; charset=utf-8",
   ".txt": "text/plain; charset=utf-8",
+  ".text": "text/plain; charset=utf-8",
   ".md": "text/markdown; charset=utf-8",
-  ".json": "application/json",
-  ".pdf": "application/pdf",
+  ".markdown": "text/markdown; charset=utf-8",
+  ".json": "application/json; charset=utf-8",
+  ".jsonld": "application/ld+json",
+  ".yaml": "text/yaml; charset=utf-8",
+  ".yml": "text/yaml; charset=utf-8",
+  ".xml": "application/xml; charset=utf-8",
+  ".csv": "text/csv; charset=utf-8",
+  ".tsv": "text/tab-separated-values; charset=utf-8",
+  ".css": "text/css; charset=utf-8",
+  ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
+  ".cjs": "text/javascript; charset=utf-8",
+  ".ts": "text/plain; charset=utf-8",
+  ".sh": "text/plain; charset=utf-8",
+  ".bash": "text/plain; charset=utf-8",
+  ".zsh": "text/plain; charset=utf-8",
+  ".py": "text/plain; charset=utf-8",
+  ".rs": "text/plain; charset=utf-8",
+  ".go": "text/plain; charset=utf-8",
+  ".c": "text/plain; charset=utf-8",
+  ".cpp": "text/plain; charset=utf-8",
+  ".h": "text/plain; charset=utf-8",
+  ".log": "text/plain; charset=utf-8",
+
+  // Images
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
   ".gif": "image/gif",
   ".svg": "image/svg+xml",
+  ".ico": "image/x-icon",
+  ".bmp": "image/bmp",
+  ".tiff": "image/tiff",
+  ".tif": "image/tiff",
+  ".avif": "image/avif",
+
+  // Audio & Video
+  ".mp3": "audio/mpeg",
+  ".wav": "audio/wav",
+  ".ogg": "audio/ogg",
+  ".m4a": "audio/mp4",
+  ".aac": "audio/aac",
+  ".flac": "audio/flac",
+  ".mp4": "video/mp4",
+  ".webm": "video/webm",
+  ".mkv": "video/x-matroska",
+  ".mov": "video/quicktime",
+  ".avi": "video/x-msvideo",
+
+  // Documents
+  ".pdf": "application/pdf",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ".ppt": "application/vnd.ms-powerpoint",
+  ".pptx": "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  ".epub": "application/epub+zip",
+
+  // Archives
   ".zip": "application/zip",
   ".tar": "application/x-tar",
   ".gz": "application/gzip",
   ".tgz": "application/gzip",
   ".zst": "application/zstd",
-  ".mp3": "audio/mpeg",
-  ".mp4": "video/mp4",
+  ".7z": "application/x-7z-compressed",
+  ".rar": "application/vnd.rar",
+  ".bz2": "application/x-bzip2",
+  ".xz": "application/x-xz",
+
+  // Binary & Generic
   ".bin": "application/octet-stream",
+  ".exe": "application/octet-stream",
+  ".dmg": "application/octet-stream",
+  ".iso": "application/octet-stream",
+  ".wasm": "application/wasm",
 };
+
+export function lookupMimeType(filename: string): string {
+  const ext = path.extname(filename).toLowerCase();
+  return MIME_MAP[ext] || "application/octet-stream";
+}
 
 export class FileserverServer {
   private cfg: FileserverConfig;
@@ -67,8 +137,10 @@ export class FileserverServer {
       this.server = http.createServer(app);
 
       // Parse bind_addr (e.g. "0.0.0.0:8080", ":8080", "8080")
+      // Resolves bind host dynamically from Gateway config instead of hardcoding 0.0.0.0
+      let defaultHost = resolveGatewayBindHost(this.cfg.gateway);
       let port = 0;
-      let host = "0.0.0.0";
+      let host = defaultHost;
       if (this.cfg.bind_addr) {
         const trimmed = this.cfg.bind_addr.trim();
         if (trimmed.includes(":")) {

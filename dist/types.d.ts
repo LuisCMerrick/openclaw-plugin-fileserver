@@ -40,4 +40,5 @@ export interface FileserverConfig {
     data_file: string;
     upload_data_file: string;
     max_upload_bytes: number;
+    gateway?: any;
 }

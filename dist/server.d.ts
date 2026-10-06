@@ -1,6 +1,8 @@
 import * as http from "node:http";
 import type { FileserverConfig } from "./types.js";
 import { Store } from "./store.js";
+export declare const MIME_MAP: Record<string, string>;
+export declare function lookupMimeType(filename: string): string;
 export declare class FileserverServer {
     private cfg;
     private store;

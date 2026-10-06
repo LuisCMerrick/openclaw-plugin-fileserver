@@ -18,7 +18,7 @@ function jsonResult(payload) {
 }
 export default function register(api) {
     const pluginConfigOverrides = api.config?.plugins?.entries?.["fileserver"]?.config || {};
-    const cfg = loadConfig(undefined, pluginConfigOverrides);
+    const cfg = loadConfig(undefined, pluginConfigOverrides, api.config);
     const store = new Store(cfg.data_file, cfg.upload_data_file);
     const serverInstance = new FileserverServer(cfg, store);
     // 1. Register Gateway native HTTP routes (mounted directly onto Gateway HTTP server; Nginx only needs a single location /)
